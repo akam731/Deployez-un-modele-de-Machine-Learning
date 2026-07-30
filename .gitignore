@@ -1,0 +1,8 @@
+# Dossiers d'environement
+.venv
+
+# Dossier de configuration PyCharm
+.idea
+
+# Variables d'environement
+.env
