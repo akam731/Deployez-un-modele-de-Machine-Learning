@@ -1,0 +1,22 @@
+# Nom du workflow
+name: CI
+
+# Déclencheurs
+on:
+  push:
+    branches: ["main", "develop", "feature/**"]
+
+# Processus
+jobs:
+  # Tests
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    # Étapes
+    steps:
+      - uses: actions/checkout@v4       # Clone le projet
+      - uses: astral-sh/setup-uv@v5     # Install uv et python
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen           # Installe les dépendances
+      - run: uv run pytest              # Réalise les tests
