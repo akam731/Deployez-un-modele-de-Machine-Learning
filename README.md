@@ -39,6 +39,14 @@ credit-scoring-api/
 ```
 
 ---
+## Gestion des branches
+| Branche | Rôle                                                                                   |
+|---------|----------------------------------------------------------------------------------------|
+| `main` | Version stable, prête à être déployée / présentée                                      |
+| `develop` | Intégration des fonctionnalités en cours de développement                              |
+| `feature/*` | Une branche par fonctionnalité ou tâche (ex. `feature/ci-cd`) pouvant êtres supprimées |
+
+---
 
 ## Variables d'environnement
 
