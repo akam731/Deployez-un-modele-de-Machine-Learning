@@ -1,11 +1,10 @@
 from fastapi import FastAPI
 
-# Création du serveur
-app = FastAPI()
+# Création du serveur FastAPI
+app = FastAPI(
+    title="ESN TechNova Partners - API",
+    description="Identifiez les causes d'attrition au sein de l'ESN TechNova Partners",
+    version="1.0.0",
+)
 
-
-@app.get("/",
-    summary="Endpoint principal",
-    description="Retourne un message de bienvenue.")
-async def root():
-    return {"message": "Hello World"}
+from app.api import routes  # noqa: F401
