@@ -6,3 +6,6 @@
 
 # Variables d'environement
 .env
+
+# Rapports de tests
+tests/coverage/

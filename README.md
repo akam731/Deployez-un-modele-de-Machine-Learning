@@ -39,7 +39,10 @@ Project/
 │   └── main.py                 # Point d'entrée
 │
 ├── tests/
-│   ├── test_api.py             # Tests pytest
+│   ├── coverage/               # Contiens les rapports de couverture des tests
+│   ├── conftest.py             # Fixtures pytest partagées
+│   ├── test_api.py             # Tests fonctionnels des endpoints
+│   ├── test_model_manager.py   # Tests unitaires du modèle / preprocess
 │   └── test_routes.http        # Requêtes manuelles (REST Client)
 │
 ├── .github/workflows/ci.yml    # CI
@@ -87,6 +90,23 @@ L'API est ensuite disponible à l'adresse :
 
 ```
 http://127.0.0.1:8000
+```
+
+---
+
+## Tests
+
+Lancer les tests (avec couverture) :
+
+```bash
+uv run pytest
+```
+
+
+Afficher le rapport détaillé des tests :
+
+```bash
+start tests/coverage/htmlcov/index.html
 ```
 
 ---

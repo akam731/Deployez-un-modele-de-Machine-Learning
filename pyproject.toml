@@ -9,9 +9,19 @@ dependencies = [
     "pandas>=3.0.5",
     "pydantic>=2.13.4",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "scikit-learn>=1.9.0",
     "uvicorn>=0.52.0",
 ]
 
+# Paramétrage des tests
 [tool.pytest.ini_options]
 pythonpath = ["."]
+# Options par défaut de : uv run pytest
+# Les tests génèrent une erreur si la couverture de test est inférieure à 80%
+# Le rapport HTML est généré automatiquement dans le dossier tests/coverage/htmlcov
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80 --cov-report=html:tests/coverage/htmlcov"
+
+# Emplacement du fichier .coverage
+[tool.coverage.run]
+data_file = "tests/coverage/.coverage"
