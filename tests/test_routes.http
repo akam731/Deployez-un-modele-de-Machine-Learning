@@ -1,7 +1,6 @@
 # Test manuel des endpoints de l'API
 # Données volontairement différentes de tests/conftest.py (sample_employee)
 # Prérequis : uv run uvicorn app.main:app --reload --port 8000
-# Extension : REST Client → "Send Request"
 
 @baseUrl = http://127.0.0.1:8000
 
