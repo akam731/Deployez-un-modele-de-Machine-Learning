@@ -129,12 +129,9 @@ def get_con_str():
                 "Réponse invalide. Veuillez répondre par y ou n : "
             ).strip().lower()
 
-        print("oui")
         if response == "n":
-            print("non")
             print("Entrez la nouvelle chaîne de connexion : ", end="", flush=True)
             str_con = getpass("")
-            print("\nChaîne récupérée !")
     else:
         # Aucune chaine de connexion trouvée
         str_con = getpass(

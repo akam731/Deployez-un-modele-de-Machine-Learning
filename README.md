@@ -45,7 +45,9 @@ Project/
 │   ├── test_model_manager.py   # Tests unitaires du modèle / preprocess
 │   └── test_routes.http        # Requêtes manuelles (REST Client)
 │
-├── .github/workflows/ci.yml    # CI
+├── .github/workflows/  
+│   ├── ci.yml                  # CI
+│   └── cd.yml                  # CD
 ├── .env(.exemple)              # Variables d'environments
 └── pyproject.toml              # Fichier de configuration UV
 ```
