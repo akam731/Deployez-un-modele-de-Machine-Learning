@@ -1505,3 +1505,11 @@ INSERT INTO public.outputs (id, prediction, probability, created_at, input_id) V
 INSERT INTO public.outputs (id, prediction, probability, created_at, input_id) VALUES (8, 1, 0.7723333207138544, '2026-08-13 16:57:47.083252+02', 8);
 INSERT INTO public.outputs (id, prediction, probability, created_at, input_id) VALUES (9, 0, 0.22220366070548864, '2026-08-13 16:57:47.085622+02', 9);
 INSERT INTO public.outputs (id, prediction, probability, created_at, input_id) VALUES (10, 0, 0.22044510362685846, '2026-08-13 16:57:47.089368+02', 10);
+
+
+-- -----------------------------------------------------------------------------
+-- 4. Mise à jour des id pour postgre pour qu'il s'adapte aux nouvelles données
+-- -----------------------------------------------------------------------------
+SELECT setval('public.datas_id_seq',   COALESCE((SELECT MAX(id) FROM public.datas), 1));
+SELECT setval('public.inputs_id_seq',  COALESCE((SELECT MAX(id) FROM public.inputs), 1));
+SELECT setval('public.outputs_id_seq', COALESCE((SELECT MAX(id) FROM public.outputs), 1));
