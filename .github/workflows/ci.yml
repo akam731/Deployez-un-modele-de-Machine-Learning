@@ -11,26 +11,32 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
 
-    # Service PostgreSQL pour les tests d'intégration
+    # Conteneur Postgres démarré à côté du job (tests d'intégration)
     services:
       postgres:
         image: postgres:16
+
+        # Identifiants et nom de la base créés au démarrage du conteneur
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: technova_test
+
+        # Expose le port 5432 du conteneur sur localhost:5432 du runner
         ports:
           - 5432:5432
-        # Attend que Postgres soit prêt avant de lancer les steps
+
+        # Options pour attendre que Postgres accepte les connexions avant de passer à la suite
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
-    # URL de connexion utilisée par l'application pendant les tests
+    # Variable lue par l'app : pointe vers le service Postgres ci-dessus
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/technova_test
+
 
     steps:
       # Récupère le code du dépôt
