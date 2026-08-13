@@ -1,14 +1,14 @@
 from sqlalchemy import create_engine, text, Engine, inspect
 from dotenv import load_dotenv
 import os
-
+from app.database.models import Datas, Inputs, Outputs
 from sqlalchemy.orm import Session
-from app.database.models import Datas
 import pandas as pd
 from pathlib import Path
 from app.database.db_connexion import db_connexion
 from app.database.models import Base
 from sqlalchemy.orm import sessionmaker
+
 
 class database:
     """
@@ -16,11 +16,11 @@ class database:
     création, suppression, création des tables, insertion des données...
     """
 
-    conn : db_connexion     # Classe de connexion contenant toutes les informations de connexion de la base de données
-    engine = None           # Moteur de la base de donnée (Permet la connexion)
-    session : Session       # Session de connexion (Utilisé pour intéragir avec les données)
+    conn: db_connexion  # Classe de connexion contenant toutes les informations de connexion de la base de données
+    engine = None  # Moteur de la base de donnée (Permet la connexion)
+    session: Session  # Session de connexion (Utilisé pour intéragir avec les données)
 
-    def __init__(self, database_url = None):
+    def __init__(self, database_url=None):
         """
         Constructeur. Il vérifie et initialise la connexion avec la base de données
         :param database_url: Chaine de connexion à la base de données. Si vide, on récupère la variable d'environement DATABASE_URL
@@ -44,13 +44,36 @@ class database:
 
             # Création de la session
             Session = sessionmaker(bind=self.engine)
-            session = Session()
+            self.session = Session()
 
         except Exception as e:
             raise RuntimeError("Impossible de se connecter à la base de données.") from e
 
+    def save_prediction(
+            self,
+            features: dict,
+            prediction: int,
+            probability: float,
+    ) -> int:
+        """
+        Enregistre une entrée API (inputs) et sa sortie (outputs).
+        Retourne l'id de l'input créé.
+        """
+        with Session(self.engine) as session:
+            row_in = Inputs(**features)
+            session.add(row_in)
+            session.flush()
 
-    def insert_values(self) :
+            row_out = Outputs(
+                prediction=int(prediction),
+                probability=float(probability),
+                input_id=row_in.id,
+            )
+            session.add(row_out)
+            session.commit()
+            return row_in.id
+
+    def insert_values(self):
         """
         Insert les valeurs du dataset de base du model dans la base de données dans la table Datas
         """
@@ -90,7 +113,7 @@ class database:
 
         return True
 
-    def setup_tables(self, force: bool = False) -> bool :
+    def setup_tables(self, force: bool = False) -> bool:
         """
         Crée les tables d'une base de données en passant par la méthode static create_tables
         :param force:
@@ -99,7 +122,7 @@ class database:
         return database.create_tables(self.engine, force)
 
     @staticmethod
-    def create_tables(engine: Engine, force: bool = False) -> bool :
+    def create_tables(engine: Engine, force: bool = False) -> bool:
         """
         Crée les tables manquantes. En les supprimant si elles existent déjà
         :return: statut de la création : True / False
@@ -111,7 +134,7 @@ class database:
             if any(table in existing for table in expected):
                 if not force:
                     return False
-                else :
+                else:
                     Base.metadata.drop_all(bind=engine)
             Base.metadata.create_all(bind=engine)
             return True
@@ -145,13 +168,13 @@ class database:
             with admin_engine.connect() as conn:
                 # Vérification de l'existence
                 exists = conn.execute(
-                    text("SELECT 1 FROM pg_database WHERE datname = :name"),{"name": conn_params.db_name},).scalar()
+                    text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": conn_params.db_name}, ).scalar()
 
                 if exists:
                     return False
 
                 # Création de la base de données
-                conn.execute( text(f'CREATE DATABASE "{conn_params.db_name}"'))
+                conn.execute(text(f'CREATE DATABASE "{conn_params.db_name}"'))
 
                 return True
         finally:
@@ -203,3 +226,15 @@ class database:
                 return True
         finally:
             admin_engine.dispose()
+
+
+
+# Singleton pour la production pour ne pas répéter la fonction __init__ à chaque appel
+_db_instance: database | None = None
+
+def get_db() -> database:
+    """Singleton : une seule connexion réutilisée par l'API."""
+    global _db_instance
+    if _db_instance is None:
+        _db_instance = database()  # lit DATABASE_URL
+    return _db_instance

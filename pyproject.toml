@@ -21,9 +21,9 @@ dependencies = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 # Options par défaut de : uv run pytest
-# Les tests génèrent une erreur si la couverture de test est inférieure à 80%
+# Les tests génèrent une erreur si la couverture de test est inférieure à 85%
 # Le rapport HTML est généré automatiquement dans le dossier tests/coverage/htmlcov
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80 --cov-report=html:tests/coverage/htmlcov"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=85 --cov-report=html:tests/coverage/htmlcov"
 
 # Emplacement du fichier .coverage
 [tool.coverage.run]

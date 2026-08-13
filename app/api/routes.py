@@ -1,5 +1,6 @@
 import pandas as pd
 
+from app.database.database import get_db
 from app.main import app
 from app.model.model_manager import model_manager as ModelManager
 from app.model.schema import BatchPredictionRequest, PredictionRequest
@@ -35,9 +36,12 @@ async def predict(request: PredictionRequest):
     prediction = ModelManager.predict(df)[0]
     probability = ModelManager.predict_proba(df)[0][1]
 
+    # Sauvegarde des inputs et outputs en base de données
+    get_db().save_prediction(request.model_dump(), prediction, probability)
+
     return {
         "prediction": int(prediction),
-        "probability": float(probability)
+        "probability": float(probability),
     }
 
 ################################
@@ -57,13 +61,13 @@ async def predict_batch(request: BatchPredictionRequest):
     predictions = ModelManager.predict(df)
     probabilities = ModelManager.predict_proba(df)[:, 1]
 
+    # Sauvegarde des inputs et outputs en base de données
+    db = get_db()
+    results = []
+    for employee, pred, proba in zip(request.employees, predictions, probabilities):
+        p, pr = int(pred), float(proba)
+        db.save_prediction(employee.model_dump(), p, pr)
+        results.append({"prediction": p, "probability": pr})
+
     # Liste de résultats (une entrée par employé)
-    return {
-        "predictions": [
-            {
-                "prediction": int(prediction),
-                "probability": float(probability),
-            }
-            for prediction, probability in zip(predictions, probabilities)
-        ]
-    }
+    return {"predictions": results}
