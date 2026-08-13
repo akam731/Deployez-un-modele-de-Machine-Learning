@@ -6,6 +6,7 @@
 
 # Variables d'environement
 .env
+.env.test
 
 # Rapports de tests
 tests/coverage/

@@ -1,7 +1,7 @@
 # Test manuel des endpoints de l'API
-# Données volontairement différentes de tests/conftest.py (sample_employee)
 # Prérequis : uv run uvicorn app.main:app --reload --port 8000
 
+# URL de base de l'api
 @baseUrl = http://127.0.0.1:8000
 
 ################################
@@ -17,7 +17,7 @@ GET {{baseUrl}}/health
 Accept: application/json
 
 ################################
-# Prédiction individuelle (OK) — profil A
+# Prédiction individuelle
 ################################
 POST {{baseUrl}}/predict
 Content-Type: application/json
@@ -54,7 +54,7 @@ Accept: application/json
 }
 
 ################################
-# Prédiction avec littéraux en minuscules (OK) — profil B
+# Prédiction avec littéraux en minuscules
 ################################
 POST {{baseUrl}}/predict
 Content-Type: application/json
@@ -91,7 +91,7 @@ Accept: application/json
 }
 
 ################################
-# Prédiction en lot (OK) — profils A + C
+# Prédiction en lot
 ################################
 POST {{baseUrl}}/predict/batch
 Content-Type: application/json
@@ -161,7 +161,7 @@ Accept: application/json
 }
 
 ################################
-# Batch vide (OK → predictions: [])
+# Batch vide
 ################################
 POST {{baseUrl}}/predict/batch
 Content-Type: application/json
@@ -172,7 +172,7 @@ Accept: application/json
 }
 
 ################################
-# Erreur : mauvais genre (422) — basé sur profil A
+# Erreur : mauvais genre
 ################################
 POST {{baseUrl}}/predict
 Content-Type: application/json
@@ -209,7 +209,7 @@ Accept: application/json
 }
 
 ################################
-# Erreur : salaire négatif (422) — basé sur profil B
+# Erreur : salaire négatif
 ################################
 POST {{baseUrl}}/predict
 Content-Type: application/json

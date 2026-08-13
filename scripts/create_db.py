@@ -11,7 +11,6 @@ import sys
 RED = "\033[91m"
 RESET = "\033[0m"
 
-
 def main():
     """ Gère le processus complet de la création de la base de données """
 
@@ -35,14 +34,11 @@ def main():
 def create_tables(engine : Engine):
     """
     Crée les tables manquantes.
-    Si reset=True : supprime puis recrée (destructif).
+    Si reset=True : supprime puis recrée (détruit les données déjà présentes).
     """
     print("Création des tables.")
     try:
-        inspector = inspect(engine)
-        existing = inspector.get_table_names()
-        expected = list(Base.metadata.tables.keys())
-        if any(table in existing for table in expected):
+        if not database.create_tables(engine, False) :
             print(
                 f"{RED}Au moins une table existe déjà. "
                 f"Si elle contient des données, elles seront toutes supprimées. "
@@ -54,15 +50,14 @@ def create_tables(engine : Engine):
             if response == "n":
                 print("Opération annulée.")
                 sys.exit(1)
-            Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
-
+            else:
+                database.create_tables(engine, True)
     except Exception as e:
         print(f"Impossible de créer les tables : {e}")
         sys.exit(1)
 
 
-def create_db(str_con: str):
+def create_db(str_con: str) :
     """
     Crée la base de données à partir de sa chaine de connexion
     :param str_con: Chaine de connexion à la base de données
@@ -72,43 +67,22 @@ def create_db(str_con: str):
         database(str_con)
         print("La base de données existe déjà.")
         return
-    except Exception:
+    except :
         print("La base de données n'existe pas.")
 
-    # On extrait de la chaine de connexion les données de l'hôte et de la base de données
+    # Création de la base de données
     try:
-        url = make_url(str_con)
-    except Exception:
-        print("Chaine de connexion invalide, impossible de poursuivre le processus. \n"
-              "Le bon format est : postgresql://utilisateur:motdepasse@hote:port/nom_base.")
+        if database.create_db(str_con):
+            print("Base de données créée avec succès.")
+        else:
+            print("La base de données existe déjà")
+    except :
+        print("Une erreur est survenue lors de la création de la base de données")
         sys.exit(1)
 
-    host = url.host
-    port = url.port or 5432
-    user = url.username
-    password = url.password
-    db_name = url.database
-
-    if not all([host, user, password, db_name]):
-        print("URL incomplète : host, user, password et nom de base requis")
-        sys.exit(1)
-
-    # Connexion au serveur
-    admin_url = url.set(database="postgres")
-    admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
-    with admin_engine.connect() as conn:
-        exists = conn.execute(
-            text("SELECT 1 FROM pg_database WHERE datname = :name"),
-            {"name": db_name},
-        ).scalar()
-        if not exists:
-            conn.execute(text(f'CREATE DATABASE "{db_name}"'))
-            print(f"Base '{db_name}' créée sur {host}:{port}.")
-
-    print("Base de données créée avec succès.")
 
 
-def get_con_str():
+def get_con_str() -> str :
     """
     Récupère la chaine de connexion à la base de données
     :return: Chaine de connexion à la base de données
