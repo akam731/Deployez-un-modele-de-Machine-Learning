@@ -1,16 +1,24 @@
 from sqlalchemy import create_engine, text, Engine, inspect
 from dotenv import load_dotenv
-from sqlalchemy.engine import make_url
 import os
-import sys
 
+from sqlalchemy.orm import Session
+from app.database.models import Datas
+import pandas as pd
+from pathlib import Path
 from app.database.db_connexion import db_connexion
 from app.database.models import Base
+from sqlalchemy.orm import sessionmaker
 
 class database:
+    """
+    Class qui gère toutes les intéraction avec la base de données :
+    création, suppression, création des tables, insertion des données...
+    """
 
-    engine = None
-    conn : db_connexion
+    conn : db_connexion     # Classe de connexion contenant toutes les informations de connexion de la base de données
+    engine = None           # Moteur de la base de donnée (Permet la connexion)
+    session : Session       # Session de connexion (Utilisé pour intéragir avec les données)
 
     def __init__(self, database_url = None):
         """
@@ -33,9 +41,54 @@ class database:
         # Tentative de connexion pour vérifier la connexion à la base de données
         try:
             self.engine.connect()
+
+            # Création de la session
+            Session = sessionmaker(bind=self.engine)
+            session = Session()
+
         except Exception as e:
             raise RuntimeError("Impossible de se connecter à la base de données.") from e
 
+
+    def insert_values(self) :
+        """
+        Insert les valeurs du dataset de base du model dans la base de données dans la table Datas
+        """
+        # Récupération des 3 datasets
+
+        data_path = Path(__file__).parent.parent / "model" / "datas"
+
+        # Récupération des datasets
+        try:
+            sirh = pd.read_csv(data_path / "sirh.csv")
+            eval = pd.read_csv(data_path / "eval.csv")
+            sondages = pd.read_csv(data_path / "sondages.csv")
+        except Exception as e:
+            raise Exception(f"Les datasets ne sont pas accéssibles au chemin {data_path} ") from e
+
+        sondages["id_employee"] = sondages["code_sondage"].astype(int)
+        eval["id_employee"] = (
+            eval["eval_number"].astype(str).str.replace("E_", "", regex=False).astype(int)
+        )
+        df = (
+            sirh.merge(sondages, on="id_employee", how="inner")
+            .merge(eval, on="id_employee", how="inner")
+        )
+        df["a_quitte_l_entreprise"] = (
+            df["a_quitte_l_entreprise"].astype(str).str.strip().str.lower()
+            .map({"oui": 1, "non": 0})
+        )
+        df["augementation_salaire_precedente"] = (
+            df["augementation_salaire_precedente"]
+            .astype(str).str.replace("%", "", regex=False).str.strip().astype(int)
+        )
+        cols = [c.name for c in Datas.__table__.columns if c.name != "id"]
+        records = df[cols].to_dict(orient="records")
+        with Session(self.engine) as session:
+            session.bulk_insert_mappings(Datas, records)
+            session.commit()
+
+        return True
 
     def setup_tables(self, force: bool = False) -> bool :
         """

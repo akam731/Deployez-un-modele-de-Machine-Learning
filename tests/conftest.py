@@ -8,9 +8,6 @@ from app.main import app
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Charge le .env.test (s'il existe) en priorité sur le .env pour réaliser les tests sur une base de données spétiale et non sur la bdd de dev
-load_dotenv(Path(__file__).resolve().parents[1] / ".env.test", override=True)
-
 @pytest.fixture
 def client():
     """Client de test FastAPI pour appeler les endpoints sans serveur réel."""

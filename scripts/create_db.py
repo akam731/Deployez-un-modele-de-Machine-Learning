@@ -24,7 +24,13 @@ def main():
     db = database(str_con)
     create_tables(db.engine)
 
-    # TODO: Insertion du dataset
+    # Insertion du dataset
+    try:
+        db.insert_values()
+        print("Données insérées")
+    except Exception as e:
+        print(f"Une erreur est survenue lors de l'insertion des données : {e}")
+        sys.exit(1)
 
     # TODO: Création des vues
 
@@ -52,6 +58,7 @@ def create_tables(engine : Engine):
                 sys.exit(1)
             else:
                 database.create_tables(engine, True)
+                print("Tables créées")
     except Exception as e:
         print(f"Impossible de créer les tables : {e}")
         sys.exit(1)
