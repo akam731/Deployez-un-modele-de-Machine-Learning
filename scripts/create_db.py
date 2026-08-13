@@ -67,7 +67,13 @@ def main():
         print(f"Une erreur est survenue lors de l'insertion des données : {e}")
         sys.exit(1)
 
-    # TODO: Création des vues
+    # Création des vues
+    try:
+        db.create_views()
+        print("Vues créées")
+    except Exception as e:
+        print(f"Une erreur est survenue lors de la création des vues : {e}")
+        sys.exit(1)
 
     print("Terminé")
 

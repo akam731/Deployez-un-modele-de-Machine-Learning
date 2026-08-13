@@ -113,6 +113,17 @@ class database:
 
         return True
 
+    def create_views(self) -> None:
+        """Exécute scripts/sql/create_views.sql (CREATE OR REPLACE VIEW)."""
+        path = Path(__file__).resolve().parents[2] / "scripts" / "sql" / "create_views.sql"
+        sql = path.read_text(encoding="utf-8")
+
+        # Il y a plusieurs instructions donc on utilise un cursor dbapi
+        with self.engine.begin() as conn:
+            raw = conn.connection.dbapi_connection
+            with raw.cursor() as cur:
+                cur.execute(sql)
+
     def setup_tables(self, force: bool = False) -> bool:
         """
         Crée les tables d'une base de données en passant par la méthode static create_tables
@@ -135,7 +146,12 @@ class database:
                 if not force:
                     return False
                 else:
+                    # On supprime d'abord les vues si elles existent
+                    with engine.begin() as conn:
+                        conn.execute(text("DROP VIEW IF EXISTS vue_predictions CASCADE"))
+                        conn.execute(text("DROP VIEW IF EXISTS vue_datas CASCADE"))
                     Base.metadata.drop_all(bind=engine)
+
             Base.metadata.create_all(bind=engine)
             return True
 
@@ -228,9 +244,9 @@ class database:
             admin_engine.dispose()
 
 
-
 # Singleton pour la production pour ne pas répéter la fonction __init__ à chaque appel
 _db_instance: database | None = None
+
 
 def get_db() -> database:
     """Singleton : une seule connexion réutilisée par l'API."""
