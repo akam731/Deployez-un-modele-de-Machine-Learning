@@ -1,28 +1,63 @@
-from sqlalchemy import create_engine, text, inspect, Engine
+from sqlalchemy import Engine
 from dotenv import load_dotenv
-from sqlalchemy.engine import make_url
 from app.database.database import database
-from app.database.models import Base
 from getpass import getpass
 import os
 import sys
+import argparse
 
 # Constantes de couleur pour les messages
 RED = "\033[91m"
 RESET = "\033[0m"
 
+def parse_args():
+    """
+    Permer de paser les arguments fournis à la fonction main lors de la commande : uv run python -m scripts.create_db "str" --force
+    :return:
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "database_url",
+        nargs="?",
+        default=None,
+        help="Fournis la chaine de connexion à la base de données souhaitée",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Sans cette attribut on passe en mode intéractif",
+    )
+    return parser.parse_args()
+
 def main():
     """ Gère le processus complet de la création de la base de données """
+    args = parse_args()
 
     # Récupère la chaine de connexion
-    str_con = get_con_str()
+    if args.force:
+        # Mode non interactif
+        str_con = args.database_url or os.getenv("DATABASE_URL")
+        if not str_con:
+            load_dotenv()
+            str_con = os.getenv("DATABASE_URL")
+        if not str_con:
+            print("Mode --force : veuillez fournir database_url en paramètre ou DATABASE_URL dans le .env.")
+            sys.exit(1)
+    else:
+        # Mode interactif (getpass / input)
+        str_con = get_con_str()
 
     # Création de la base de données
     create_db(str_con)
 
     # Création des tables
     db = database(str_con)
-    create_tables(db.engine)
+    if args.force:
+        print("Création des tables (--force).")
+        database.create_tables(db.engine, force=True)
+        print("Tables créées")
+    else:
+        create_tables(db.engine)
 
     # Insertion du dataset
     try:

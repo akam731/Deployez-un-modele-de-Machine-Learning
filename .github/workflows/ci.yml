@@ -50,5 +50,8 @@ jobs:
       # Installe les dépendances à partir du lockfile
       - run: uv sync --frozen
 
+      # Initialisation de la base de données
+      - run: uv run python -m scripts.create_db --force
+
       # Exécute la suite de tests
       - run: uv run pytest
