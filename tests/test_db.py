@@ -179,3 +179,45 @@ def test_insert_values_row_has_expected_columns(temp_db):
     assert row["departement"] is not None
     assert row["a_quitte_l_entreprise"] in (0, 1)
     assert row["augementation_salaire_precedente"] >= 0
+
+
+def test_save_prediction_persists_input_and_output(temp_db, sample_employee):
+    """Créer une ligne inputs et outputs"""
+    db, _url = temp_db
+    database.create_tables(db.engine, force=True)
+
+    input_id = db.save_prediction(sample_employee, prediction=1, probability=0.62)
+
+    with db.engine.connect() as conn:
+        input_row = conn.execute(
+            text("SELECT id, age, genre FROM inputs WHERE id = :id"),
+            {"id": input_id},
+        ).mappings().one()
+        output_row = conn.execute(
+            text(
+                "SELECT prediction, probability, input_id FROM outputs WHERE input_id = :id"
+            ),
+            {"id": input_id},
+        ).mappings().one()
+
+    assert input_row["age"] == sample_employee["age"]
+    assert input_row["genre"] == sample_employee["genre"]
+    assert output_row["prediction"] == 1
+    assert output_row["probability"] == pytest.approx(0.62)
+    assert output_row["input_id"] == input_id
+
+
+def test_save_prediction_multiple_calls(temp_db, sample_employee):
+    """Chaque appel save_prediction crée un nouveau couple input/output."""
+    db, _url = temp_db
+    database.create_tables(db.engine, force=True)
+
+    db.save_prediction(sample_employee, prediction=0, probability=0.31)
+    db.save_prediction(sample_employee, prediction=1, probability=0.78)
+
+    with db.engine.connect() as conn:
+        inputs_count = conn.execute(text("SELECT COUNT(*) FROM inputs")).scalar()
+        outputs_count = conn.execute(text("SELECT COUNT(*) FROM outputs")).scalar()
+
+    assert inputs_count == 2
+    assert outputs_count == 2
