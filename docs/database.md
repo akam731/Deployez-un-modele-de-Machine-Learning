@@ -14,10 +14,8 @@
 
 ## Sommaire
 
-- [Sommaire](#sommaire)
 - [Présentation](#présentation)
 - [Schéma de la base de données](#schéma-de-la-base-de-données)
-  - [Relations](#relations)
 - [Structure des tables](#structure-des-tables)
   - [Table `datas`](#table-datas)
   - [Table `inputs`](#table-inputs)

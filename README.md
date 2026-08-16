@@ -403,6 +403,7 @@ Ces interfaces permettent de consulter les endpoints, visualiser les schémas et
 |---------------------------|-------------------------------------------------------------------------|
 | `v0.1-structure-initiale` | Structure simple de FastAPI, aucune fonctionnalité de l'API implémentée |
 | `v1.0`                    | API fonctionnelle, routes /predict et /predict/batch fonctionnelles     |
+| `v2.0`                    | BDD PostgreSQL, logging des prédictions, docs et tests associés     |
 
 <div id="cicd"></div>
 

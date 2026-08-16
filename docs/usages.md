@@ -249,10 +249,13 @@ Même logique que `/predict`, pour plusieurs employés.
 
 ```json
 {
-  "predictions": [
-    { "prediction": 1, "probability": 0.62 },
-    { "prediction": 0, "probability": 0.31 }
-  ]
+    "predictions": [{
+        "prediction": 0,
+        "probability": 0.4421361296961108
+    }, {
+        "prediction": 0,
+        "probability": 0.45617678213607654
+    }]
 }
 ```
 ---

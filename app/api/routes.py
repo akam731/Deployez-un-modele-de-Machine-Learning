@@ -26,7 +26,8 @@ async def health(): return { "status": "healthy"}
 ################################
 # Route de prédiction unique
 ################################
-@app.post("/predict")
+@app.post("/predict", summary="Prédiction d'attrition pour un employé",
+    description="Analyse les features d'un employé et estime le risque de départ")
 async def predict(request: PredictionRequest):
 
     # Conversion de la requête validée en DataFrame (1 ligne)
@@ -47,7 +48,8 @@ async def predict(request: PredictionRequest):
 ################################
 # Route de prédictions multiples
 ################################
-@app.post("/predict/batch")
+@app.post("/predict/batch", summary="Prédiction d'attrition pour plusieurs employés",
+    description="Applique la prédiction à plusieurs employés en une seule requête.")
 async def predict_batch(request: BatchPredictionRequest):
 
     # Aucun employé dans la requête : rien à prédire
