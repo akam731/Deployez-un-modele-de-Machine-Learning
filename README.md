@@ -42,6 +42,8 @@ Le modèle déployé est celui du projet : 4 - Classifiez automatiquement des in
 
 Il permet de prédire si un employé de l'entreprise ESN TechNova Partners risque de quitter l'entreprise ou non.
 
+[Lien du github](https://github.com/akam731/Deployez-un-modele-de-Machine-Learning/)
+
 ---
 
 <p align="right">(<a href="#readme-top">Retour en haut</a>)</p>
