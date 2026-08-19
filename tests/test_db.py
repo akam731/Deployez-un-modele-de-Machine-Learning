@@ -139,26 +139,29 @@ def test_create_tables_force_recreates(temp_db):
         assert table in existing
 
 
-def test_insert_values_loads_rows_into_datas(temp_db):
-    """
-    insert_values remplit la table datas à partir des 3 CSV.
-    On recrée le schéma pour partir d'une table vide.
-    """
+def test_insert_values_loads_rows_into_inputs(temp_db):
+    """insert_values remplit inputs/outputs à partir des 3 CSV (source=dataset)."""
     db, _url = temp_db
     database.create_tables(db.engine, force=True)
     result = db.insert_values()
     assert result is True
     with db.engine.connect() as conn:
-        count = conn.execute(text("SELECT COUNT(*) FROM datas")).scalar()
+        inputs_count = conn.execute(text("SELECT COUNT(*) FROM inputs")).scalar()
+        outputs_count = conn.execute(text("SELECT COUNT(*) FROM outputs")).scalar()
+        dataset_count = conn.execute(
+            text("SELECT COUNT(*) FROM inputs WHERE source = 'dataset'")
+        ).scalar()
         target_values = conn.execute(
-            text("SELECT DISTINCT a_quitte_l_entreprise FROM datas")
+            text("SELECT DISTINCT prediction FROM outputs")
         ).scalars().all()
-    assert count > 0
+    assert inputs_count > 0
+    assert inputs_count == outputs_count
+    assert dataset_count == inputs_count
     assert set(target_values).issubset({0, 1})
 
 
 def test_insert_values_row_has_expected_columns(temp_db):
-    """Une ligne datas contient les features attendues (pas NULL sur un champ clé)."""
+    """Une ligne dataset contient les features attendues et source=dataset."""
     db, _url = temp_db
     database.create_tables(db.engine, force=True)
     db.insert_values()
@@ -166,9 +169,11 @@ def test_insert_values_row_has_expected_columns(temp_db):
         row = conn.execute(
             text(
                 """
-                SELECT age, genre, revenu_mensuel, departement,
-                       a_quitte_l_entreprise, augementation_salaire_precedente
-                FROM datas
+                SELECT i.age, i.genre, i.revenu_mensuel, i.departement, i.source,
+                       o.prediction, o.probability
+                FROM inputs i
+                JOIN outputs o ON o.input_id = i.id
+                WHERE i.source = 'dataset'
                 LIMIT 1
                 """
             )
@@ -177,8 +182,9 @@ def test_insert_values_row_has_expected_columns(temp_db):
     assert row["genre"] in ("F", "M")
     assert row["revenu_mensuel"] > 0
     assert row["departement"] is not None
-    assert row["a_quitte_l_entreprise"] in (0, 1)
-    assert row["augementation_salaire_precedente"] >= 0
+    assert row["source"] == "dataset"
+    assert row["prediction"] in (0, 1)
+    assert row["probability"] == 1.0
 
 
 def test_save_prediction_persists_input_and_output(temp_db, sample_employee):
@@ -190,7 +196,7 @@ def test_save_prediction_persists_input_and_output(temp_db, sample_employee):
 
     with db.engine.connect() as conn:
         input_row = conn.execute(
-            text("SELECT id, age, genre FROM inputs WHERE id = :id"),
+            text("SELECT id, age, genre, source FROM inputs WHERE id = :id"),
             {"id": input_id},
         ).mappings().one()
         output_row = conn.execute(
@@ -202,6 +208,7 @@ def test_save_prediction_persists_input_and_output(temp_db, sample_employee):
 
     assert input_row["age"] == sample_employee["age"]
     assert input_row["genre"] == sample_employee["genre"]
+    assert input_row["source"] == "api"
     assert output_row["prediction"] == 1
     assert output_row["probability"] == pytest.approx(0.62)
     assert output_row["input_id"] == input_id

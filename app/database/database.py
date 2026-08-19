@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, text, Engine, inspect
 from dotenv import load_dotenv
 import os
-from app.database.models import Datas, Inputs, Outputs
+from app.database.models import Inputs, Outputs
 from sqlalchemy.orm import Session
 import pandas as pd
 from pathlib import Path
@@ -60,7 +60,7 @@ class database:
         Retourne l'id de l'input créé.
         """
         with Session(self.engine) as session:
-            row_in = Inputs(**features)
+            row_in = Inputs(**features, source="api")
             session.add(row_in)
             session.flush()
 
@@ -73,29 +73,24 @@ class database:
             session.commit()
             return row_in.id
 
-    def insert_values(self):
-        """
-        Insert les valeurs du dataset de base du model dans la base de données dans la table Datas
-        """
-        # Récupération des 3 datasets
-
+    @staticmethod
+    def load_dataset_dataframe() -> pd.DataFrame:
+        """Charge et prépare le dataset de référence (CSV SIRH + sondages + eval)."""
         data_path = Path(__file__).parent.parent / "model" / "datas"
-
-        # Récupération des datasets
         try:
             sirh = pd.read_csv(data_path / "sirh.csv")
-            eval = pd.read_csv(data_path / "eval.csv")
+            eval_df = pd.read_csv(data_path / "eval.csv")
             sondages = pd.read_csv(data_path / "sondages.csv")
         except Exception as e:
             raise Exception(f"Les datasets ne sont pas accéssibles au chemin {data_path} ") from e
 
         sondages["id_employee"] = sondages["code_sondage"].astype(int)
-        eval["id_employee"] = (
-            eval["eval_number"].astype(str).str.replace("E_", "", regex=False).astype(int)
+        eval_df["id_employee"] = (
+            eval_df["eval_number"].astype(str).str.replace("E_", "", regex=False).astype(int)
         )
         df = (
             sirh.merge(sondages, on="id_employee", how="inner")
-            .merge(eval, on="id_employee", how="inner")
+            .merge(eval_df, on="id_employee", how="inner")
         )
         df["a_quitte_l_entreprise"] = (
             df["a_quitte_l_entreprise"].astype(str).str.strip().str.lower()
@@ -105,10 +100,31 @@ class database:
             df["augementation_salaire_precedente"]
             .astype(str).str.replace("%", "", regex=False).str.strip().astype(int)
         )
-        cols = [c.name for c in Datas.__table__.columns if c.name != "id"]
-        records = df[cols].to_dict(orient="records")
+        return df
+
+    def insert_values(self):
+        """Insère le dataset de référence dans inputs + outputs (source=dataset)."""
+        df = self.load_dataset_dataframe()
+        feature_cols = [
+            c.name
+            for c in Inputs.__table__.columns
+            if c.name not in ("id", "created_at", "source")
+        ]
+
         with Session(self.engine) as session:
-            session.bulk_insert_mappings(Datas, records)
+            for _, row in df.iterrows():
+                features = {col: row[col] for col in feature_cols}
+                label = int(row["a_quitte_l_entreprise"])
+                row_in = Inputs(**features, source="dataset")
+                session.add(row_in)
+                session.flush()
+                session.add(
+                    Outputs(
+                        prediction=label,
+                        probability=1.0,
+                        input_id=row_in.id,
+                    )
+                )
             session.commit()
 
         return True
@@ -146,10 +162,8 @@ class database:
                 if not force:
                     return False
                 else:
-                    # On supprime d'abord les vues si elles existent
                     with engine.begin() as conn:
                         conn.execute(text("DROP VIEW IF EXISTS vue_predictions CASCADE"))
-                        conn.execute(text("DROP VIEW IF EXISTS vue_datas CASCADE"))
                     Base.metadata.drop_all(bind=engine)
 
             Base.metadata.create_all(bind=engine)

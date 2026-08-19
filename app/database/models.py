@@ -4,7 +4,6 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
 
 
-# Simplification de la classe de base dont tous les models vont hériter
 Base = declarative_base()
 
 
@@ -16,7 +15,7 @@ def utcnow():
 class EmployeeFeatures:
     """
     Colonnes features partagées (alignées sur PredictionRequest).
-    Héritées par Datas et Inputs pour éviter la duplication.
+    Héritées par Inputs pour éviter la duplication.
     """
 
     # SIRH
@@ -53,22 +52,13 @@ class EmployeeFeatures:
     augementation_salaire_precedente = Column(Integer, nullable=False)
 
 
-class Datas(EmployeeFeatures, Base):
-    """Table contenant le dataset de référence du modèle."""
-
-    __tablename__ = "datas"
-
-    id = Column(Integer, primary_key=True, index=True)
-    # Cible du dataset
-    a_quitte_l_entreprise = Column(Integer, nullable=True)
-
-
 class Inputs(EmployeeFeatures, Base):
-    """Table des entrées API envoyées au modèle."""
+    """Entrées du modèle : dataset de référence ou requêtes API."""
 
     __tablename__ = "inputs"
 
     id = Column(Integer, primary_key=True, index=True)
+    source = Column(String(20), nullable=False, default="api")
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     output = relationship(
@@ -79,7 +69,7 @@ class Inputs(EmployeeFeatures, Base):
 
 
 class Outputs(Base):
-    """Table des sorties du modèle, liées à un input."""
+    """Sorties du modèle, liées à un input."""
 
     __tablename__ = "outputs"
 

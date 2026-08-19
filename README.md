@@ -155,8 +155,8 @@ Project/
 │   ├── create_db.py                  # Création de la BDD et des tables
 │   └── sql/
 │       ├── create_tables.sql         # Script SQL de création des tables
-│       ├── insert_datas.sql          # Script SQL d'insertion du dataset
-│       └── create_views.sql          # Script SQL de création des Vues
+│       ├── insert_inputs.sql         # Script SQL d'insertion du dataset
+│       └── create_views.sql          # Script SQL de création des vues
 │
 ├── docs/
 │   ├── database.md                   # Documentation de la base de données
@@ -266,20 +266,20 @@ Le secret `RENDER_DEPLOY_HOOK` est stocké dans les **GitHub Secrets** (voir [Ge
 
 ### Flux de stockage
 
-1. **Dataset de référence** — chargé dans la table `datas` (CSV ou script SQL).
-2. **Requête API** — chaque appel à `/predict` ou `/predict/batch` enregistre les features dans `inputs`.
+1. **Dataset de référence** — chargé dans `inputs` (`source='dataset'`) + `outputs` (label réel, `probability=1.0`), via `create_db.py` (CSV).
+2. **Requête API** — chaque appel à `/predict` ou `/predict/batch` enregistre les features dans `inputs` (`source='api'`).
 3. **Prédiction** — le résultat est stocké dans `outputs` (lien 1–1 avec `inputs`).
 
 Détail complet : [docs/database.md](docs/database.md).
 
 ### Exemples de données en base
 
-- **Dataset initial** : [`scripts/sql/insert_datas.sql`](scripts/sql/insert_datas.sql) (insertions SQL du jeu de référence).
+- **Dataset initial** : [`scripts/sql/insert_inputs.sql`](scripts/sql/insert_inputs.sql) (insertions SQL du jeu de référence).
 - **Prédictions API** : créées automatiquement à chaque appel de prédiction.
 
 ### Besoins analytiques
 
-Les vues SQL `vue_predictions` et `vue_datas` agrègent le dataset et les prédictions API pour alimenter un futur **tableau de bord** (Power BI, Metabase, Supabase SQL Editor, etc.).
+La vue SQL `vue_predictions` agrège dataset et prédictions API (colonne `source`) pour alimenter un futur **tableau de bord** (Power BI, Metabase, Supabase SQL Editor, etc.).
 
 ---
 
@@ -361,6 +361,8 @@ start tests/coverage/htmlcov/index.html
 URL de production :
 https://deployez-un-modele-de-machine-learning.onrender.com
 
+> L’API de production est hébergée sur [render](https://render.com). Lorsqu’elle reste inactive pendant un certain temps, elle passe en mode veille. À la prochaine requête, Render la réactive automatiquement.
+
 Documentation interactive OpenAPI (Swagger / ReDoc) :
 
 | Environnement | Swagger UI | ReDoc |
@@ -403,7 +405,8 @@ Ces interfaces permettent de consulter les endpoints, visualiser les schémas et
 |---------------------------|-------------------------------------------------------------------------|
 | `v0.1-structure-initiale` | Structure simple de FastAPI, aucune fonctionnalité de l'API implémentée |
 | `v1.0`                    | API fonctionnelle, routes /predict et /predict/batch fonctionnelles     |
-| `v2.0`                    | BDD PostgreSQL, logging des prédictions, docs et tests associés     |
+| `v2.0`                    | BDD PostgreSQL, logging des prédictions, docs et tests associés         |
+| `v3.0`                    | Version finale avec une base de données optimisée                       |
 
 <div id="cicd"></div>
 

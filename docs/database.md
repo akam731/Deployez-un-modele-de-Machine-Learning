@@ -17,12 +17,10 @@
 - [Présentation](#présentation)
 - [Schéma de la base de données](#schéma-de-la-base-de-données)
 - [Structure des tables](#structure-des-tables)
-  - [Table `datas`](#table-datas)
   - [Table `inputs`](#table-inputs)
   - [Table `outputs`](#table-outputs)
 - [Vues SQL](#vues-sql)
   - [`vue_predictions`](#vue_predictions)
-  - [`vue_datas`](#vue_datas)
 - [Initialisation de la base](#initialisation-de-la-base)
   - [Variables d'environnement](#variables-denvironnement)
   - [Script `create_db.py`](#script-create_dbpy)
@@ -39,9 +37,8 @@
 
 La base PostgreSQL stocke :
 
-- le **dataset de référence** utilisé pour entraîner le modèle (`datas`)
-- les **entrées API** envoyées au modèle (`inputs`)
-- les **sorties du modèle** associées (`outputs`)
+- les **entrées** (features employé) dans `inputs` — dataset de référence (`source='dataset'`) ou requêtes API (`source='api'`)
+- les **sorties** associées dans `outputs` — label réel pour le dataset, prédiction du modèle pour l'API
 
 En production, la base est hébergée sur **Supabase**.<br>
 En local ou en CI, elle peut tourner sur une instance PostgreSQL classique via la variable d'environnement `DATABASE_URL`.
@@ -58,10 +55,10 @@ Schéma UML de la base de données réalisé sur https://dbdiagram.io/
 
 ![Schéma de la base de données](shema_bdd.png)
 
-### Relations 
-Il y a une relation 1–1 entre les tables Inputs et Outputs (`input_id` unique).
-Elle permet de relier chaque sortie (Outputs) à son entrée (Inputs)
+### Relations
 
+Il y a une relation 1–1 entre les tables `inputs` et `outputs` (`input_id` unique).
+Elle permet de relier chaque sortie (`outputs`) à son entrée (`inputs`).
 
 ---
 
@@ -73,21 +70,10 @@ Elle permet de relier chaque sortie (Outputs) à son entrée (Inputs)
 
 | Table | Rôle |
 |-------|------|
-| `datas` | Dataset de référence du modèle (features + cible) |
-| `inputs` | Entrées envoyées à l'API / au modèle |
-| `outputs` | Prédictions du modèle, liées à un `input` |
+| `inputs` | Caractéristiques employé (dataset ou requêtes API) |
+| `outputs` | Label réel (dataset) ou prédiction modèle (API), lié 1–1 à un `input` |
 
-Les colonnes **features** sont partagées entre `datas` et `inputs` via le mixin `EmployeeFeatures` (`app/database/models.py`), aligné sur le schéma Pydantic `PredictionRequest`.
-
-<div id="table-datas"></div>
-
-### Table `datas`
-
-| Colonne | Type | Description |
-|---------|------|-------------|
-| `id` | Integer (PK) | Identifiant |
-| `a_quitte_l_entreprise` | Integer | Cible : `1` = départ, `0` = reste |
-| + features | — | Mêmes colonnes que `PredictionRequest` (âge, genre, département, etc.) |
+Les colonnes **features** sont définies via le mixin `EmployeeFeatures` (`app/database/models.py`), aligné sur le schéma Pydantic `PredictionRequest`.
 
 <div id="table-inputs"></div>
 
@@ -96,8 +82,9 @@ Les colonnes **features** sont partagées entre `datas` et `inputs` via le mixin
 | Colonne | Type | Description |
 |---------|------|-------------|
 | `id` | Integer (PK) | Identifiant |
-| `created_at` | DateTime (UTC) | Horodatage de la requête API |
-| + features | — | Caractéristiques de l'employé envoyées à `/predict` |
+| `source` | String(20) | `dataset` (référence) ou `api` (requête live) |
+| `created_at` | DateTime (UTC) | Horodatage de l'enregistrement |
+| + features | — | Caractéristiques de l'employé (âge, genre, département, etc.) |
 
 <div id="table-outputs"></div>
 
@@ -107,9 +94,9 @@ Les colonnes **features** sont partagées entre `datas` et `inputs` via le mixin
 |---------|------|-------------|
 | `id` | Integer (PK) | Identifiant |
 | `input_id` | Integer (FK, unique) | Lien vers `inputs.id` |
-| `prediction` | Integer | `0` ou `1` |
-| `probability` | Float | Probabilité de la classe prédite |
-| `created_at` | DateTime (UTC) | Horodatage de la prédiction |
+| `prediction` | Integer | `0` ou `1` — label réel (dataset) ou prédiction modèle (API) |
+| `probability` | Float | `1.0` pour le dataset ; probabilité du modèle pour l'API |
+| `created_at` | DateTime (UTC) | Horodatage |
 
 ---
 
@@ -125,16 +112,12 @@ Créées par `scripts/sql/create_views.sql` via `database.create_views()`.
 
 ### `vue_predictions`
 
-Jointure `inputs` + `outputs` : une ligne = une requête API avec sa prédiction et sa probabilité.
+Jointure `inputs` + `outputs` : une ligne = une entrée avec sa sortie associée.
 
-<div id="vue-datas"></div>
+La colonne `source` permet de distinguer :
 
-### `vue_datas`
-
-Union du dataset (`datas`) et des prédictions API (`inputs` + `outputs`), avec une colonne `source` :
-
-- `dataset` → label réel (`a_quitte_l_entreprise`) ;
-- `api` → prédiction + probabilité du modèle.
+- `dataset` → label réel du jeu de référence (`prediction`, `probability=1.0`) ;
+- `api` → prédiction et probabilité renvoyées par le modèle.
 
 ---
 
@@ -164,8 +147,8 @@ Fichier : `scripts/create_db.py`
 
 1. **Connexion** — lit `DATABASE_URL` (`.env`) ou demande une URL.
 2. **Création de la base** — crée la base PostgreSQL si elle n'existe pas.
-3. **Création des tables** — recrée le schéma si nécessaire (`datas`, `inputs`, `outputs`).
-4. **Insertion du dataset** — charge les CSV (`sirh`, `sondages`, `eval`) dans `datas`.
+3. **Création des tables** — recrée le schéma si nécessaire (`inputs`, `outputs`).
+4. **Insertion du dataset** — charge les CSV (`sirh`, `sondages`, `eval`) dans `inputs` + `outputs` (`source='dataset'`).
 5. **Création des vues** — exécute `create_views.sql`.
 
 Depuis la **racine du projet** :
@@ -193,13 +176,12 @@ En complément du script Python, le projet fournit des **scripts SQL exécutable
 
 | Fichier | Rôle |
 |---------|------|
-| [`create_tables.sql`](../scripts/sql/create_tables.sql) | Création des tables `datas`, `inputs`, `outputs` |
-| [`insert_datas.sql`](../scripts/sql/insert_datas.sql) | Insertion du dataset de référence dans `datas` |
-| [`create_views.sql`](../scripts/sql/create_views.sql) | Création des vues `vue_predictions` et `vue_datas` |
+| [`create_tables.sql`](../scripts/sql/create_tables.sql) | Création des tables `inputs`, `outputs` |
+| [`insert_inputs.sql`](../scripts/sql/insert_inputs.sql) | Insertion du dataset de référence dans `inputs` + `outputs` |
+| [`create_views.sql`](../scripts/sql/create_views.sql) | Création de la vue `vue_predictions` |
 
-
-> **Note :** `create_db.py` automatise ces étapes via SQLAlchemy (tables + CSV) et exécute `create_views.sql`. 
-> Les fichiers SQL restent utiles si on préfère initialiser la base **manuellement**
+> **Note :** `create_db.py` automatise l'initialisation complète (tables, insertion du dataset depuis les CSV, vues).
+> Les fichiers SQL restent utiles si on préfère initialiser la base **manuellement**.
 ---
 
 <p align="right">(<a href="#readme-top">Retour en haut</a>)</p>
@@ -210,7 +192,7 @@ En complément du script Python, le projet fournit des **scripts SQL exécutable
 
 Chaque appel à `/predict` ou `/predict/batch` enregistre :
 
-1. les features dans `inputs` ;
+1. les features dans `inputs` (`source='api'`) ;
 2. la prédiction et la probabilité dans `outputs`.
 
 ---
